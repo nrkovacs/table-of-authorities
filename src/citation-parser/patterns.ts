@@ -12,7 +12,8 @@ import { CitationCategory, CitationPattern } from './types';
 const CASE_PATTERNS: CitationPattern[] = [
   {
     // Standard case citation: Brown v. Board of Education, 347 U.S. 483 (1954)
-    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    // Uses stricter party name matching to avoid capturing preceding text (and newlines)
+    pattern: /\b((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*))[ \t]+v\.[ \t]+((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*)),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
     category: CitationCategory.Cases,
     description: 'Standard case citation',
   },
@@ -37,7 +38,7 @@ const CASE_PATTERNS: CitationPattern[] = [
   },
   {
     // Case with multi-word reporter: Smith v. Jones, 65 F. Supp. 2d 431 (W.D. Tex. 1999)
-    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+(F\.\s*Supp\.(?:\s*\d+d)?)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    pattern: /\b((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*))[ \t]+v\.[ \t]+((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*)),\s+(\d+)\s+(F\.\s*Supp\.(?:\s*\d+d)?)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
     category: CitationCategory.Cases,
     description: 'Case with F. Supp. reporter',
   },
@@ -228,6 +229,13 @@ const TREATISES_PATTERNS: CitationPattern[] = [
     category: CitationCategory.Treatises,
     description: 'Witkin treatise',
   },
+  {
+    // Treatise without volume: Laurence H. Tribe, American Constitutional Law § 16-14 (3d ed. 2000)
+    // Matches: Author, Title § Section (Year/Ed)
+    pattern: /\b([A-Z][\w.,'&-]*(?:\s+[A-Z][\w.,'& -]*)*),\s+([A-Z][A-Za-z\s&.,'-]+)\s+§\s*([\d.-]+)\s+\((?:(?:\d+[a-z]*\s+ed\.\s+)?\d{4})\)/gi,
+    category: CitationCategory.Treatises,
+    description: 'Treatise without volume',
+  },
 ];
 
 /**
@@ -267,7 +275,7 @@ export function getPatternsByCategory(category: CitationCategory): CitationPatte
  * Common reporter abbreviations for case validation
  */
 export const REPORTER_ABBREVIATIONS = [
-  'U.S.', 'S.Ct.', 'L.Ed.', 'F.', 'F.2d', 'F.3d', 'F.4th', 
+  'U.S.', 'S.Ct.', 'L.Ed.', 'F.', 'F.2d', 'F.3d', 'F.4th',
   'F.Supp.', 'F.Supp.2d', 'F.Supp.3d',
   'Cal.', 'Cal.2d', 'Cal.3d', 'Cal.4th', 'Cal.5th',
   'Cal.App.', 'Cal.App.2d', 'Cal.App.3d', 'Cal.App.4th', 'Cal.App.5th',
