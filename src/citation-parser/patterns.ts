@@ -12,7 +12,7 @@ import { CitationCategory, CitationPattern } from './types';
 const CASE_PATTERNS: CitationPattern[] = [
   {
     // Standard case citation: Brown v. Board of Education, 347 U.S. 483 (1954)
-    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Z][A-Za-z.\s]+)\s+)?(\d{4})\)/gi,
+    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
     category: CitationCategory.Cases,
     description: 'Standard case citation',
   },
