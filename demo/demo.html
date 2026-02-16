@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table of Authorities Generator — Word Add-in Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f0f0;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* Word-like ribbon */
+    .ribbon {
+      background: linear-gradient(180deg, #217346 0%, #185a34 100%);
+      color: white;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 44px;
+      font-size: 13px;
+    }
+    .ribbon .logo {
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ribbon .logo svg { width: 20px; height: 20px; fill: white; }
+    .ribbon .tabs { display: flex; gap: 2px; }
+    .ribbon .tab {
+      padding: 4px 14px;
+      border-radius: 3px 3px 0 0;
+      cursor: pointer;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .ribbon .tab.active { background: rgba(255,255,255,0.15); opacity: 1; }
+    .ribbon .tab:hover { opacity: 1; }
+    
+    /* Toolbar */
+    .toolbar {
+      background: #f8f8f8;
+      border-bottom: 1px solid #d4d4d4;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 42px;
+    }
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid #c8c8c8;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+    }
+    .toolbar-btn:hover { background: #e8e8e8; }
+    .toolbar-btn.active {
+      background: #217346;
+      color: white;
+      border-color: #185a34;
+    }
+    .toolbar-separator {
+      width: 1px;
+      height: 24px;
+      background: #d4d4d4;
+    }
+    .file-name {
+      font-size: 13px;
+      color: #444;
+      font-weight: 500;
+    }
+    
+    /* Main content area */
+    .main {
+      display: flex;
+      height: calc(100vh - 86px);
+    }
+    
+    /* Document area */
+    .document-area {
+      flex: 1;
+      overflow-y: auto;
+      background: #e8e8e8;
+      padding: 30px;
+    }
+    .document-page {
+      background: white;
+      max-width: 816px;
+      margin: 0 auto 20px;
+      padding: 72px 72px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      min-height: 1056px;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 13px;
+      line-height: 2;
+      color: #111;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .document-page .highlight {
+      background: #fff3cd;
+      border-bottom: 2px solid #ffc107;
+      padding: 0 2px;
+      transition: background 0.3s;
+    }
+    .document-page .highlight.active {
+      background: #d4edda;
+      border-bottom-color: #28a745;
+    }
+    
+    /* Task pane */
+    .taskpane {
+      width: 380px;
+      background: #fafafa;
+      border-left: 1px solid #d4d4d4;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.3s;
+    }
+    .taskpane.collapsed { width: 0; border: none; }
+    
+    .taskpane-header {
+      background: white;
+      padding: 16px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .taskpane-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #217346;
+      margin-bottom: 4px;
+    }
+    .taskpane-header p {
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .taskpane-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #217346;
+      color: white;
+    }
+    .btn-primary:hover { background: #185a34; }
+    .btn-primary:disabled { background: #b0b0b0; cursor: not-allowed; }
+    .btn-success {
+      background: #0078d4;
+      color: white;
+    }
+    .btn-success:hover { background: #0063b1; }
+    .btn-success:disabled { background: #b0b0b0; cursor: not-allowed; }
+    
+    .status-bar {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .status-bar.info { display: block; background: #e8f4fd; color: #0078d4; border: 1px solid #b3d7f2; }
+    .status-bar.success { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-bar.scanning { display: block; background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    
+    .progress-container {
+      display: none;
+      margin-bottom: 12px;
+    }
+    .progress-container.visible { display: block; }
+    .progress-bar {
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #217346;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .stats {
+      display: none;
+      background: white;
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .stats.visible { display: block; }
+    .stats h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 8px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 12px;
+    }
+    .stat-label { color: #666; }
+    .stat-value { font-weight: 600; color: #333; }
+    
+    .toa-output {
+      display: none;
+      background: white;
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      padding: 16px;
+      margin-top: 12px;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11px;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .toa-output.visible { display: block; }
+    .toa-output h3 {
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: #444;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .toa-category {
+      font-weight: 700;
+      font-size: 12px;
+      margin: 12px 0 6px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
+    }
+    .toa-entry {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .toa-entry .cite-text {
+      flex: 1;
+      overflow: hidden;
+    }
+    .toa-entry .cite-text em { font-style: italic; }
+    .toa-entry .dots {
+      flex: 0 0 auto;
+      color: #999;
+      padding: 0 4px;
+      letter-spacing: 2px;
+    }
+    .toa-entry .pages {
+      flex: 0 0 auto;
+      color: #333;
+      white-space: nowrap;
+    }
+    
+    /* Word status bar */
+    .word-status {
+      background: #217346;
+      color: rgba(255,255,255,0.85);
+      padding: 2px 12px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 22px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Word-like Ribbon -->
+  <div class="ribbon">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M23.004 1.5q.41 0 .703.293t.293.703v19.008q0 .41-.293.703t-.703.293H6.996q-.41 0-.703-.293T6 21.504V18H.996q-.41 0-.703-.293T0 17.004V6.996q0-.41.293-.703T.996 6H6V2.496q0-.41.293-.703t.703-.293zM6.035 11.203l1.442 4.735h1.64l1.57-7.876H9.036l-.937 4.653-1.325-4.653H5.38l-1.406 4.653-.938-4.653H1.312l1.57 7.876h1.641z"/></svg>
+      Word
+    </div>
+    <div class="tabs">
+      <div class="tab">File</div>
+      <div class="tab active">Home</div>
+      <div class="tab">Insert</div>
+      <div class="tab">References</div>
+      <div class="tab">Review</div>
+      <div class="tab">View</div>
+    </div>
+  </div>
+  
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="file-name">📄 Terwilliger v. Reyna — Appellant's Brief.docx</span>
+    <div class="toolbar-separator"></div>
+    <button class="toolbar-btn active" id="toggleTaskpane">
+      📋 TOA Generator
+    </button>
+  </div>
+  
+  <!-- Main Area -->
+  <div class="main">
+    <!-- Document -->
+    <div class="document-area">
+      <div class="document-page" id="documentContent">
+        Loading brief...
+      </div>
+    </div>
+    
+    <!-- Task Pane -->
+    <div class="taskpane" id="taskpane">
+      <div class="taskpane-header">
+        <h2>📑 Table of Authorities</h2>
+        <p>Automatically generate legal citation tables</p>
+      </div>
+      <div class="taskpane-body">
+        <button class="btn btn-primary" id="scanBtn">🔍 Scan Document</button>
+        <button class="btn btn-success" id="generateBtn" disabled>📄 Generate TOA</button>
+        
+        <div class="status-bar" id="statusBar"></div>
+        
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressText"></div>
+        </div>
+        
+        <div class="stats" id="stats">
+          <h3>Citations Found</h3>
+          <div id="statsContent"></div>
+        </div>
+        
+        <div class="toa-output" id="toaOutput">
+          <h3>Generated Table of Authorities</h3>
+          <div id="toaContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Status Bar -->
+  <div class="word-status">
+    <span>Page 1 of 12</span>
+    <span>12,847 Words</span>
+  </div>
+  
+  <script src="brief-text.js"></script>
+  <script src="../dist/taskpane.js"></script>
+  <script>
+    // Load the brief text into the document view
+    const docEl = document.getElementById('documentContent');
+    docEl.textContent = window.BRIEF_TEXT || 'No brief text loaded.';
+    
+    // Wire up the demo buttons to the real citation parser
+    const scanBtn = document.getElementById('scanBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const statusBar = document.getElementById('statusBar');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const stats = document.getElementById('stats');
+    const statsContent = document.getElementById('statsContent');
+    const toaOutput = document.getElementById('toaOutput');
+    const toaContent = document.getElementById('toaContent');
+    
+    let parsedCitations = [];
+    
+    function setStatus(msg, type) {
+      statusBar.textContent = msg;
+      statusBar.className = 'status-bar ' + type;
+    }
+    
+    function showProgress(pct, text) {
+      progressContainer.className = 'progress-container visible';
+      progressFill.style.width = pct + '%';
+      progressText.textContent = text;
+    }
+    
+    function hideProgress() {
+      progressContainer.className = 'progress-container';
+    }
+    
+    function highlightCitations() {
+      let html = docEl.textContent;
+      // Highlight detected citations in the document
+      for (const cit of parsedCitations) {
+        if (cit.text && !cit.isShortForm) {
+          const escaped = cit.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          try {
+            html = html.replace(
+              new RegExp(escaped.substring(0, 60), 'g'),
+              '<span class="highlight">$&</span>'
+            );
+          } catch(e) {}
+        }
+      }
+      docEl.innerHTML = html;
+    }
+    
+    scanBtn.addEventListener('click', async () => {
+      scanBtn.disabled = true;
+      setStatus('Scanning document for citations...', 'scanning');
+      showProgress(0, 'Initializing...');
+      
+      const text = window.BRIEF_TEXT;
+      
+      // Simulate progressive scanning
+      await new Promise(r => setTimeout(r, 500));
+      showProgress(20, 'Reading document text...');
+      
+      await new Promise(r => setTimeout(r, 600));
+      showProgress(40, 'Detecting case citations...');
+      
+      await new Promise(r => setTimeout(r, 500));
+      showProgress(60, 'Detecting statutes & regulations...');
+      
+      await new Promise(r => setTimeout(r, 400));
+      showProgress(80, 'Normalizing and deduplicating...');
+      
+      // Actually parse using our real engine
+      // Access the bundled parser via the global scope set by webpack
+      const charsPerPage = 3000;
+      const pageCount = Math.max(1, Math.ceil(text.length / charsPerPage));
+      const pageMap = new Map();
+      for (let i = 0; i < pageCount; i++) {
+        const start = i * charsPerPage;
+        const end = Math.min((i + 1) * charsPerPage, text.length);
+        pageMap.set(i + 1, text.substring(start, end));
+      }
+      
+      // Use the parseText function if available, otherwise do regex directly
+      // Since this runs standalone, we'll do a lightweight parse
+      const patterns = [
+        { pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi, category: 'Cases' },
+        { pattern: /\b(?:In re|Ex parte)\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.\s]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Z][A-Za-z.\s]+)\s+)?(\d{4})\)/gi, category: 'Cases' },
+        { pattern: /\b(\d+)\s+U\.?S\.?C\.?\s+§+\s*([\d\w\-]+(?:\([a-z0-9]+\))?)/gi, category: 'Statutes' },
+        { pattern: /\bU\.?S\.?\s+Const\.\s+amend\.\s+([IVXLCDM]+)(?:,\s+§\s*(\d+))?/gi, category: 'Constitutional Provisions' },
+        { pattern: /\bFed\.\s+R\.\s+Civ\.\s+P\.\s+([\d]+(?:\([a-z0-9]+\))*)/gi, category: 'Rules' },
+        { pattern: /\b(\d+)\s+C\.?F\.?R\.?\s+§\s*([\d\w\-\.]+(?:\([a-z0-9]+\)?)?)/gi, category: 'Regulations' },
+        { pattern: /\bRestatement\s+\(([A-Za-z]+)\)\s+of\s+([A-Za-z\s]+)\s+§\s*([\d\w]+)/gi, category: 'Treatises' },
+        { pattern: /\bTex\.\s+([A-Z][A-Za-z.]+)\s+(?:Proc\.\s+)?Code\s+(?:Ann\.\s+)?§\s*([\d\w\-\.]+)/gi, category: 'Statutes' },
+      ];
+      
+      const found = [];
+      const seen = new Set();
+      for (const { pattern, category } of patterns) {
+        const regex = new RegExp(pattern.source, pattern.flags);
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          const t = match[0].trim().replace(/[,;.]$/, '');
+          const key = t.substring(0, 60).toUpperCase();
+          if (!seen.has(key) && t.length > 8) {
+            seen.add(key);
+            found.push({
+              text: t,
+              category,
+              isShortForm: false,
+              pages: [Math.ceil(match.index / charsPerPage) + 1],
+            });
+          }
+        }
+      }
+      
+      parsedCitations = found;
+      
+      await new Promise(r => setTimeout(r, 400));
+      showProgress(100, 'Complete!');
+      
+      // Show stats
+      const byCat = {};
+      for (const c of found) {
+        byCat[c.category] = (byCat[c.category] || 0) + 1;
+      }
+      
+      statsContent.innerHTML = '';
+      const catOrder = ['Cases', 'Statutes', 'Constitutional Provisions', 'Rules', 'Regulations', 'Treatises', 'Other'];
+      for (const cat of catOrder) {
+        if (byCat[cat]) {
+          statsContent.innerHTML += `<div class="stat-row"><span class="stat-label">${cat}</span><span class="stat-value">${byCat[cat]}</span></div>`;
+        }
+      }
+      statsContent.innerHTML += `<div class="stat-row" style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 4px;"><span class="stat-label"><strong>Total</strong></span><span class="stat-value"><strong>${found.length}</strong></span></div>`;
+      stats.className = 'stats visible';
+      
+      setStatus(`Found ${found.length} unique citations in ${pageCount} pages`, 'success');
+      generateBtn.disabled = false;
+      scanBtn.disabled = false;
+      
+      // Highlight citations in the document
+      highlightCitations();
+      
+      await new Promise(r => setTimeout(r, 800));
+      hideProgress();
+    });
+    
+    generateBtn.addEventListener('click', async () => {
+      generateBtn.disabled = true;
+      setStatus('Generating Table of Authorities...', 'scanning');
+      
+      await new Promise(r => setTimeout(r, 800));
+      
+      // Group by category
+      const grouped = {};
+      for (const c of parsedCitations) {
+        if (!grouped[c.category]) grouped[c.category] = [];
+        grouped[c.category].push(c);
+      }
+      
+      // Sort within each category
+      for (const cat in grouped) {
+        grouped[cat].sort((a, b) => a.text.localeCompare(b.text));
+      }
+      
+      // Render TOA
+      let html = '';
+      const catOrder = ['Cases', 'Statutes', 'Constitutional Provisions', 'Rules', 'Regulations', 'Treatises', 'Other'];
+      for (const cat of catOrder) {
+        const entries = grouped[cat];
+        if (!entries || entries.length === 0) continue;
+        
+        html += `<div class="toa-category">${cat}</div>`;
+        for (const entry of entries) {
+          const citeText = cat === 'Cases' 
+            ? entry.text.replace(/^([A-Za-z\s&.''-]+v\.\s+[A-Za-z\s&.''-]+)/i, '<em>$1</em>')
+            : entry.text;
+          const pageStr = entry.pages.length >= 6 ? 'passim' : entry.pages.join(', ');
+          
+          html += `<div class="toa-entry">
+            <span class="cite-text">${citeText}</span>
+            <span class="dots">............</span>
+            <span class="pages">${pageStr}</span>
+          </div>`;
+        }
+      }
+      
+      toaContent.innerHTML = html;
+      toaOutput.className = 'toa-output visible';
+      
+      setStatus(`Table of Authorities generated with ${parsedCitations.length} citations`, 'success');
+      generateBtn.disabled = false;
+    });
+    
+    // Toggle task pane
+    document.getElementById('toggleTaskpane').addEventListener('click', () => {
+      const tp = document.getElementById('taskpane');
+      tp.classList.toggle('collapsed');
+    });
+  </script>
+</body>
+</html>

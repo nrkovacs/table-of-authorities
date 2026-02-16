@@ -27,6 +27,37 @@ const CASE_PATTERNS: CitationPattern[] = [
     pattern: /\b([A-Z][A-Za-z]+),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+at\s+(\d+)/gi,
     category: CitationCategory.Cases,
     description: 'Short form case citation',
+    isShortForm: true,
+  },
+  {
+    // Case with S. Ct. reporter (space between S. and Ct.): Roe v. Wade, 93 S. Ct. 705 (1973)
+    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+S\.\s*Ct\.\s+(\d+)(?:,\s+(\d+))?\s+\((\d{4})\)/gi,
+    category: CitationCategory.Cases,
+    description: 'Case with S. Ct. reporter',
+  },
+  {
+    // Case with multi-word reporter: Smith v. Jones, 65 F. Supp. 2d 431 (W.D. Tex. 1999)
+    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+(F\.\s*Supp\.(?:\s*\d+d)?)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    category: CitationCategory.Cases,
+    description: 'Case with F. Supp. reporter',
+  },
+  {
+    // Case with Fed. Appx/App'x: Smith v. Jones, 452 Fed. App'x 577 (5th Cir. 2011)
+    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(\d+)\s+Fed\.\s*App['']?x\.?\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    category: CitationCategory.Cases,
+    description: 'Case with Fed. Appx reporter',
+  },
+  {
+    // WL citation: No. 17-11242, 2019 WL 5268618 (5th Cir. Oct. 16, 2019)
+    pattern: /\b([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+),\s+(?:No\.\s*[\w-]+,\s*)?(\d{4})\s+WL\s+(\d+)\s*\(([A-Za-z0-9.\s]+\d{4})\)/gi,
+    category: CitationCategory.Cases,
+    description: 'Westlaw citation',
+  },
+  {
+    // Case citation without party names but with case number: No. 17-11242, 2019 WL 5268618
+    pattern: /\bNo\.\s*([\w:-]+),\s*(\d{4})\s+(?:WL|U\.S\.\s*(?:Dist\.\s*)?LEXIS)\s+(\d+)/gi,
+    category: CitationCategory.Cases,
+    description: 'Case number with WL/LEXIS',
   },
   {
     // Id. citation (reference to immediately preceding citation)

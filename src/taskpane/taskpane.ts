@@ -142,7 +142,7 @@ async function scanDocument() {
       showStatus(`Found ${currentCitations.length} citations`, 'success');
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error scanning document:', error);
     hideProgress();
     showStatus(`Error: ${error.message || 'Failed to scan document'}`, 'error');
@@ -302,7 +302,7 @@ async function generateTOA() {
     const includedCount = currentCitations.filter(c => c.isIncluded && !c.isShortForm).length;
     showStatus(`Table of Authorities generated with ${includedCount} citations`, 'success');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating TOA:', error);
     hideProgress();
     showStatus(`Error: ${error.message || 'Failed to generate TOA'}`, 'error');

@@ -12,6 +12,27 @@ import {
 } from './normalizer';
 
 /**
+ * Preprocess text to handle PDF extraction artifacts
+ * - Join lines that break mid-citation
+ * - Normalize whitespace
+ */
+function preprocessText(text: string): string {
+  // Join lines where a line break occurs mid-sentence (no sentence-ending punctuation)
+  // This handles PDF extraction splitting citations across lines
+  let result = text
+    // Replace line breaks that don't follow sentence-ending punctuation
+    .replace(/([^.!?\n])\n([a-z])/g, '$1 $2')
+    // Join lines where the next line starts with common citation continuations
+    .replace(/\n(at\s+\d)/g, ' $1')
+    .replace(/\n(v\.\s)/g, ' $1')
+    .replace(/\n(\d+\s+(?:U\.S\.|S\.Ct\.|F\.\d|L\.Ed))/g, ' $1')
+    // Clean up multiple spaces
+    .replace(/[ \t]+/g, ' ');
+  
+  return result;
+}
+
+/**
  * Generate a unique ID for a citation
  */
 function generateCitationId(): string {
@@ -37,7 +58,8 @@ export function parseDocument(
   const matches: CitationMatch[] = [];
   
   // Process each page
-  for (const [pageNumber, pageText] of pageMap.entries()) {
+  for (const [pageNumber, rawPageText] of pageMap.entries()) {
+    const pageText = preprocessText(rawPageText);
     // Find all matches on this page
     for (const pattern of allPatterns) {
       const regex = new RegExp(pattern.pattern.source, pattern.pattern.flags);

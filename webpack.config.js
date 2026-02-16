@@ -45,6 +45,10 @@ module.exports = (env, argv) => {
             from: 'manifest.xml',
             to: 'manifest.xml',
           },
+          {
+            from: 'assets',
+            to: 'assets',
+          },
         ],
       }),
     ],
