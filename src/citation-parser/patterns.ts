@@ -175,7 +175,7 @@ const REGULATIONS_PATTERNS: CitationPattern[] = [
 const TREATISES_PATTERNS: CitationPattern[] = [
   {
     // Treatise: 5 Wright & Miller, Federal Practice and Procedure § 1357 (3d ed. 2004)
-    pattern: /\b(\d+)\s+([A-Z][A-Za-z\s&]+),\s+([A-Za-z\s&]+)\s+§\s*([\d\.]+)\s+\((\d+(?:st|nd|rd|th)\s+ed\.\s+\d{4})\)/gi,
+    pattern: /\b(\d+)\s+([A-Z][A-Za-z &]+?),\s+([A-Za-z &]+)\s+§\s*([\d.]+)\s+\((\d+[a-z]*\s+ed\.\s+\d{4})\)/gi,
     category: CitationCategory.Treatises,
     description: 'Treatise with edition',
   },

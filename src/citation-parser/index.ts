@@ -2,8 +2,8 @@
  * Main citation parser orchestrator
  */
 
-import { Citation, CitationMatch, CitationCategory, ParsedDocument, ParserOptions } from './types';
-import { ALL_PATTERNS, CitationPattern } from './patterns';
+import { Citation, CitationMatch, CitationCategory, CitationPattern, ParsedDocument, ParserOptions } from './types';
+import { ALL_PATTERNS } from './patterns';
 import {
   normalizeCitationText,
   deduplicateCitations,

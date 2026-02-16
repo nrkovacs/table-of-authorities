@@ -91,8 +91,8 @@ export function formatCaseName(citationText: string): string {
   // Extract case name for italicizing
   // Pattern: "Party v. Party" or "In re Party"
   
-  const vPattern = /^([A-Z][A-Za-z\s&.,'-]+\s+v\.\s+[A-Z][A-Za-z\s&.,'-]+)/;
-  const inRePattern = /^((?:In re|Ex parte)\s+[A-Z][A-Za-z\s&.,'-]+)/;
+  const vPattern = /^([A-Z][A-Za-z\s&.'-]+\s+v\.\s+[A-Z][A-Za-z\s&.'-]+?)(?=,\s*\d|\s+\d)/;
+  const inRePattern = /^((?:In re|Ex parte)\s+[A-Z][A-Za-z\s&.'-]+?)(?=,\s*\d|\s+\d)/;
   
   let match = citationText.match(vPattern);
   if (!match) {

@@ -40,8 +40,8 @@ export function normalizeCitationText(text: string): string {
  * Extract the case name from a case citation
  */
 export function extractCaseName(citation: string): string | null {
-  // Try to match case name pattern: Party v. Party
-  const match = citation.match(/^([A-Z][A-Za-z\s&.,'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.,'-]+)/i);
+  // Try to match case name pattern: Party v. Party, stopping before volume number
+  const match = citation.match(/^([A-Z][A-Za-z\s&.'-]+)\s+v\.\s+([A-Z][A-Za-z\s&.'-]+?)(?:,\s*\d|\s+\d)/i);
   if (match) {
     return `${match[1].trim()} v. ${match[2].trim()}`;
   }
