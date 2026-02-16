@@ -253,7 +253,12 @@ function displayCitations(citations: Citation[]) {
 }
 
 /**
- * Generate and insert Table of Authorities
+ * Generate and insert Table of Authorities.
+ *
+ * Inserts each line as a separate Word paragraph with proper formatting
+ * (bold headings, centered title, hanging indents, Times New Roman).
+ * This avoids the literal \n problem from insertParagraph(bigString)
+ * and the invalid-OOXML problem from insertOoxml().
  */
 async function generateTOA() {
   try {
@@ -263,42 +268,103 @@ async function generateTOA() {
     const generateButton = document.getElementById('generateButton') as HTMLButtonElement;
     if (generateButton) generateButton.disabled = true;
 
-    // Get settings
     const passimThreshold = parseInt(
       (document.getElementById('passimThreshold') as HTMLInputElement)?.value || '6'
     );
     const useDotLeaders = (document.getElementById('useDotLeaders') as HTMLInputElement)?.checked ?? true;
 
+    const includedCitations = currentCitations.filter(c => c.isIncluded && !c.isShortForm);
+    if (includedCitations.length === 0) {
+      showStatus('No citations selected. Check the boxes next to citations you want to include.', 'error');
+      return;
+    }
+
     showProgress(30, 'Formatting citations...');
 
-    // Generate TOA text (as OOXML)
-    const toaOoxml = generateTableOfAuthorities(currentCitations, {
+    // Generate the TOA as plain text lines
+    const toaText = generateTableOfAuthorities(currentCitations, {
       onlyIncluded: true,
-      asOOXML: true,
-      format: {
-        passimThreshold,
-        useDotLeaders,
-      },
+      asOOXML: false,
+      format: { passimThreshold, useDotLeaders },
     });
 
-    showProgress(60, 'Inserting into document...');
+    const lines = toaText.split('\n');
 
-    // Insert into Word document
+    showProgress(50, 'Inserting into document...');
+
     await Word.run(async (context) => {
+      // Insert a page break before the TOA
       const selection = context.document.getSelection();
-
-      // Insert at cursor position using OOXML
-      selection.insertOoxml(toaOoxml, Word.InsertLocation.replace);
-
+      selection.insertBreak(Word.BreakType.page, Word.InsertLocation.before);
       await context.sync();
 
+      // Insert each line as its own paragraph
+      let lastPara: Word.Paragraph | null = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Progress update every 10 lines
+        if (i % 10 === 0) {
+          showProgress(50 + Math.round((i / lines.length) * 45),
+            `Inserting line ${i + 1} of ${lines.length}...`);
+        }
+
+        let para: Word.Paragraph;
+        if (lastPara) {
+          para = lastPara.insertParagraph(line, Word.InsertLocation.after);
+        } else {
+          para = context.document.body.insertParagraph(line, Word.InsertLocation.end);
+        }
+
+        // Base formatting
+        para.font.name = 'Times New Roman';
+        para.font.size = 12;
+        para.font.bold = false;
+        para.alignment = Word.Alignment.left;
+        para.lineSpacing = 14; // tight spacing
+
+        // Title line
+        if (line.trim() === 'TABLE OF AUTHORITIES') {
+          para.alignment = Word.Alignment.centered;
+          para.font.bold = true;
+          para.font.size = 14;
+          para.spaceBefore = 0;
+          para.spaceAfter = 12;
+        }
+        // Category headers (ALL CAPS, e.g. "CASES", "STATUTES")
+        else if (line.trim() && line.trim() === line.trim().toUpperCase() && line.trim().length > 3) {
+          para.font.bold = true;
+          para.font.underline = Word.UnderlineType.single;
+          para.spaceBefore = 18;
+          para.spaceAfter = 6;
+        }
+        // Empty lines — minimal spacing
+        else if (line.trim() === '') {
+          para.spaceAfter = 0;
+          para.spaceBefore = 0;
+          para.font.size = 4; // tiny font for blank spacer lines
+        }
+        // Citation lines with dot leaders
+        else {
+          para.leftIndent = 36;         // 0.5" left indent
+          para.firstLineIndent = -36;   // hanging indent
+          para.spaceAfter = 2;
+          para.spaceBefore = 2;
+        }
+
+        lastPara = para;
+      }
+
+      await context.sync();
       showProgress(100, 'Complete!');
     });
 
     hideProgress();
-
-    const includedCount = currentCitations.filter(c => c.isIncluded && !c.isShortForm).length;
-    showStatus(`Table of Authorities generated with ${includedCount} citations`, 'success');
+    showStatus(
+      `Table of Authorities generated with ${includedCitations.length} citations.`,
+      'success'
+    );
 
   } catch (error: any) {
     console.error('Error generating TOA:', error);
