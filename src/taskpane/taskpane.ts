@@ -216,6 +216,15 @@ async function markAllCitations() {
       return;
     }
 
+    // TA field injection requires Word Desktop (WordApi 1.5+)
+    if (!supportsNativeFields()) {
+      showStatus(
+        'TA field marking requires Word Desktop. In Word Online, skip to Step 3 — the TOA will be generated with formatted text.',
+        'info'
+      );
+      return;
+    }
+
     showProgress(0, 'Injecting TA fields…');
 
     await Word.run(async (context) => {
@@ -227,7 +236,6 @@ async function markAllCitations() {
         showProgress(Math.round((i / included.length) * 90),
           `Marking ${i + 1}/${included.length}: ${ta.shortCite}`);
 
-        // Search for the citation text in the document
         const results = context.document.body.search(cit.text, {
           matchCase: false,
           matchWholeWord: false,
@@ -236,18 +244,16 @@ async function markAllCitations() {
         await context.sync();
 
         if (results.items.length > 0) {
-          // Mark only the first occurrence (dedup handles grouping)
           const range = results.items[0];
           const fieldCode = buildTAFieldCode(ta.longCite, ta.shortCite, ta.categoryCode);
           range.insertField(
             Word.InsertLocation.after,
             Word.FieldType.ta,
             fieldCode,
-            false  // don't show result (TA fields are hidden)
+            false
           );
           await context.sync();
 
-          // Update session memory for Id. resolver
           lastMarkedShortCite = ta.shortCite;
           lastMarkedCategoryCode = ta.categoryCode;
           document.getElementById('lastMarkedCite')!.textContent = ta.shortCite;
@@ -272,6 +278,14 @@ async function markAllCitations() {
 
 async function markAsId() {
   try {
+    if (!supportsNativeFields()) {
+      showStatus(
+        'Id. marking requires Word Desktop. In Word Online, skip to Step 3.',
+        'info'
+      );
+      return;
+    }
+
     if (!lastMarkedShortCite || lastMarkedCategoryCode === null) {
       showStatus('No previous authority in session. Mark at least one citation first.', 'error');
       return;
@@ -287,7 +301,6 @@ async function markAsId() {
         return;
       }
 
-      // Inject TA field with only \s switch — groups this page under the previous authority
       const fieldCode = buildIdTAFieldCode(lastMarkedShortCite!, lastMarkedCategoryCode!);
       selection.insertField(
         Word.InsertLocation.after,
@@ -307,7 +320,20 @@ async function markAsId() {
   }
 }
 
-/* ─── STEP 3: Document Hygiene + TOA Generation ───────────────────── */
+/* ─── STEP 3: TOA Generation ──────────────────────────────────────── */
+
+/**
+ * Detect whether the Word.FieldType.toa API is available (Word Desktop 1.5+).
+ * Word Online does not support insertField / FieldType, so we fall back to
+ * inserting the TOA as formatted paragraphs with dot leaders.
+ */
+function supportsNativeFields(): boolean {
+  try {
+    return typeof Word.FieldType !== 'undefined' && Word.FieldType.toa !== undefined;
+  } catch {
+    return false;
+  }
+}
 
 async function generateTOA() {
   try {
@@ -315,53 +341,38 @@ async function generateTOA() {
     btn.disabled = true;
     btn.textContent = '⏳ Generating…';
 
-    const autoHygiene = (document.getElementById('autoHygiene') as HTMLInputElement)?.checked ?? true;
+    showProgress(0, 'Preparing TOA…');
 
-    showProgress(0, 'Running Document Hygiene…');
+    const included = currentCitations.filter((c) => c.isIncluded && !c.isShortForm);
+    if (!included.length) {
+      hideProgress();
+      showStatus('No citations to include. Run Scan first.', 'error');
+      return;
+    }
+
+    const useNative = supportsNativeFields();
 
     await Word.run(async (context) => {
 
-      /* ── Document Hygiene Guard ────────────────────────────────── */
-      if (autoHygiene) {
-        showProgress(10, 'Hiding field codes…');
+      showProgress(10, 'Inserting page break…');
 
-        // Toggle ShowHiddenText OFF so TA fields don't expand layout.
-        // Office.js doesn't expose Application.ShowHiddenText directly,
-        // so we use the OOXML workaround: set the document view to hide
-        // hidden text by ensuring all TA fields have vanish (hidden) formatting.
-        //
-        // Additionally, we force a repagination by reading the page count.
-        // This ensures the { TOA } fields will compute correct page numbers.
-        const body = context.document.body;
-        body.load('text'); // forces Word to repaginate
-        await context.sync();
-
-        showProgress(20, 'Repaginating document…');
-        // Reading properties triggers internal repagination
-        const props = context.document.properties;
-        props.load('revisionNumber');
-        await context.sync();
-      }
-
-      showProgress(30, 'Inserting TOA fields…');
-
-      /* ── Insert TOA at cursor position ─────────────────────────── */
+      /* ── Page break before TOA ─────────────────────────────────── */
       const selection = context.document.getSelection();
-
-      // Page break before TOA (standard legal formatting)
       selection.insertBreak(Word.BreakType.page, Word.InsertLocation.before);
       await context.sync();
 
-      // Title
-      const sel = context.document.getSelection();
-      const title = sel.insertParagraph('TABLE OF AUTHORITIES', Word.InsertLocation.before);
+      /* ── Title ──────────────────────────────────────────────────── */
+      showProgress(20, 'Writing title…');
+      const title = context.document.getSelection()
+        .insertParagraph('TABLE OF AUTHORITIES', Word.InsertLocation.before);
       title.alignment = Word.Alignment.centered;
       title.font.bold = true;
       title.font.size = 14;
       title.font.name = 'Times New Roman';
+      title.spaceAfter = 12;
       await context.sync();
 
-      // Insert TOA field per category (only categories with marked citations)
+      /* ── Category definitions (standard TOA order) ─────────────── */
       const categories = [
         { code: 1, name: 'CASES',                    category: CitationCategory.Cases },
         { code: 2, name: 'STATUTES',                 category: CitationCategory.Statutes },
@@ -372,19 +383,21 @@ async function generateTOA() {
         { code: 3, name: 'OTHER AUTHORITIES',        category: CitationCategory.Other },
       ];
 
-      const usedCats = new Set(
-        currentCitations
-          .filter((c) => c.isIncluded && !c.isShortForm)
-          .map((c) => c.category)
-      );
+      const usedCats = new Set(included.map((c) => c.category));
+
+      let step = 0;
+      const totalCats = categories.filter((c) => usedCats.has(c.category)).length;
 
       for (const cat of categories) {
         if (!usedCats.has(cat.category)) continue;
+        step++;
 
-        showProgress(30 + Math.round((categories.indexOf(cat) / categories.length) * 50),
-          `Inserting TOA for ${cat.name}…`);
+        showProgress(
+          20 + Math.round((step / totalCats) * 70),
+          `Writing ${cat.name}…`
+        );
 
-        // Category heading
+        /* ── Category heading ──────────────────────────────────── */
         const heading = context.document.getSelection()
           .insertParagraph(cat.name, Word.InsertLocation.before);
         heading.font.bold = true;
@@ -395,28 +408,73 @@ async function generateTOA() {
         heading.spaceAfter = 6;
         await context.sync();
 
-        // Insert empty paragraph, get its range, then replace with TOA field
-        const fieldPara = context.document.getSelection()
-          .insertParagraph('', Word.InsertLocation.before);
-        fieldPara.font.name = 'Times New Roman';
-        fieldPara.font.size = 12;
-        await context.sync();
+        if (useNative) {
+          /* ── Native TOA field (Word Desktop) ───────────────── */
+          const fieldPara = context.document.getSelection()
+            .insertParagraph('', Word.InsertLocation.before);
+          fieldPara.font.name = 'Times New Roman';
+          fieldPara.font.size = 12;
+          await context.sync();
 
-        // TOA field: \h = include heading, \c "N" = category, \p = passim
-        const toaCode = `\\h \\c "${cat.code}" \\p`;
-        const fieldRange = fieldPara.getRange(Word.RangeLocation.content);
-        fieldRange.insertField(
-          Word.InsertLocation.replace,
-          Word.FieldType.toa,
-          toaCode,
-          false  // don't update yet (user will right-click → Update Field)
-        );
-        await context.sync();
+          const toaCode = `\\h \\c "${cat.code}" \\p`;
+          const fieldRange = fieldPara.getRange(Word.RangeLocation.content);
+          fieldRange.insertField(
+            Word.InsertLocation.replace,
+            Word.FieldType.toa,
+            toaCode,
+            false
+          );
+          await context.sync();
+        } else {
+          /* ── Formatted-text fallback (Word Online) ─────────── */
+          const catCitations = included
+            .filter((c) => c.category === cat.category)
+            .sort((a, b) => a.text.localeCompare(b.text));
+
+          for (const cit of catCitations) {
+            const ta = preparedTA.get(cit.id);
+            const longCite = ta ? ta.longCite : cit.text;
+
+            // Build page string
+            const uniquePages = [...new Set(cit.pages)].sort((a, b) => a - b);
+            const pageStr =
+              uniquePages.length >= 6
+                ? `${uniquePages.slice(0, 6).join(', ')}, passim`
+                : uniquePages.join(', ');
+
+            // Build dot-leader line: "Citation ........... 3, 7, 12"
+            const MAX_LEN = 72;
+            const baseLen = longCite.length + pageStr.length + 2;
+            const dots =
+              baseLen < MAX_LEN
+                ? ' ' + '.'.repeat(Math.max(3, MAX_LEN - baseLen)) + ' '
+                : ' ... ';
+            const lineText = `${longCite}${dots}${pageStr}`;
+
+            const para = context.document.getSelection()
+              .insertParagraph(lineText, Word.InsertLocation.before);
+            para.font.name = 'Times New Roman';
+            para.font.size = 12;
+            para.font.bold = false;
+
+            // Italicize case names (everything up to the comma before the reporter)
+            if (cat.category === CitationCategory.Cases) {
+              const commaIdx = longCite.search(/,\s+\d/);
+              if (commaIdx > 0) {
+                const caseNameRange = para.getRange(Word.RangeLocation.whole);
+                // We can't easily sub-range in Word Online, so we set the
+                // entire paragraph to normal and accept no italics for now.
+                // A future version could use insertHtml for richer formatting.
+              }
+            }
+            await context.sync();
+          }
+        }
       }
 
       showProgress(95, 'Finalizing…');
 
-      // Spacer after the last TOA section
+      // Spacer paragraph
       context.document.getSelection()
         .insertParagraph('', Word.InsertLocation.before);
       await context.sync();
@@ -424,10 +482,18 @@ async function generateTOA() {
 
     showProgress(100, 'Done!');
     hideProgress();
-    showStatus(
-      '✅ TOA generated! Right-click the table in Word → "Update Field" to render page numbers.',
-      'success'
-    );
+
+    if (useNative) {
+      showStatus(
+        '✅ TOA generated with native fields! Right-click → "Update Field" to render page numbers.',
+        'success'
+      );
+    } else {
+      showStatus(
+        '✅ TOA generated! Page numbers are from the scan. For live page numbers, use Word Desktop.',
+        'success'
+      );
+    }
   } catch (err: any) {
     hideProgress();
     showStatus(`TOA error: ${err.message}`, 'error');
