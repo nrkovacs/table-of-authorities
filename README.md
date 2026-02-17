@@ -3,81 +3,99 @@
 > Automatically generate Tables of Authorities for legal briefs in Microsoft Word
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/tests-148%20passing-brightgreen)](#-testing)
 
 ## 📋 Overview
 
-The **Table of Authorities Generator** is a Microsoft Word Add-in that automates the tedious process of creating Tables of Authorities (TOA) for legal briefs. Instead of manually marking citations with TA fields (which can take 2-3 hours), this add-in scans your document, intelligently detects and categorizes legal citations, and generates a properly formatted TOA in seconds.
+The **Table of Authorities Generator** is a Microsoft Word Add-in that automates the tedious process of creating Tables of Authorities (TOA) for legal briefs. Instead of manually marking citations with TA fields (which can take 2–3 hours), this add-in scans your document, intelligently detects and categorizes legal citations, and generates a properly formatted TOA in seconds.
 
 ### Key Features
 
-- 🔍 **Automatic Citation Detection** - Finds cases, statutes, constitutional provisions, rules, regulations, treatises, and more
-- 📊 **Smart Categorization** - Automatically organizes citations into standard legal categories
-- ✨ **Proper Formatting** - Generates court-ready TOAs with dot leaders, italic case names, and passim notation
-- ✏️ **Review & Edit** - Review detected citations and exclude any you don't want in the TOA
-- ⚡ **Fast** - Transforms a 2-hour manual task into a 2-minute automated process
+- 🔍 **Automatic Citation Detection** — Finds cases, statutes, constitutional provisions, rules, regulations, treatises, and more
+- 📊 **Smart Categorization** — Organizes citations into 7 standard legal categories
+- 🔗 **Deduplication** — Merges duplicate citations across pages, preserving all page references
+- ✨ **Proper Formatting** — Court-ready TOAs with dot leaders, italic case names, and *passim* notation
+- ✏️ **Review & Edit** — Review detected citations and exclude any you don't want
+- 🌐 **Works in Word Online** — No local server needed; sideload directly from GitHub Pages
+- 💻 **Native Fields on Desktop** — Uses Word's native TA/TOA fields when running on Word Desktop
+- ⚡ **Fast** — Transforms a 2-hour manual task into a 2-minute automated process
 
-## 🚀 Installation
+## 🚀 Quick Start — Word Online (No Install)
 
-### From Office Store (Coming Soon)
+The fastest way to try the add-in. No cloning, no build tools, no local server.
 
-1. Open Microsoft Word
-2. Go to **Insert** > **Get Add-ins**
-3. Search for "Table of Authorities Generator"
-4. Click **Add**
+### Step 1: Download the manifest
 
-### Sideload for Development
+Download **[manifest-ghpages.xml](https://raw.githubusercontent.com/nrkovacs/table-of-authorities/main/manifest-ghpages.xml)** (right-click → Save Link As).
 
-1. Clone this repository:
+This manifest points to the hosted version on GitHub Pages (`https://nrkovacs.github.io/table-of-authorities/`).
+
+### Step 2: Open Word Online
+
+Go to [word.new](https://word.new) or open any document at [office.com](https://www.office.com).
+
+### Step 3: Sideload the add-in
+
+1. Click **Insert** in the ribbon
+2. Click **Add-ins** (or **Office Add-ins**)
+3. Click **Upload My Add-in** (in the upper-right of the dialog)
+4. Browse to the `manifest-ghpages.xml` file you downloaded and click **Upload**
+
+### Step 4: Use the add-in
+
+1. Click **Generate TOA** on the Home ribbon tab to open the task pane
+2. Click **Scan Document** — the add-in reads your brief and detects all citations
+3. Review the detected citations (uncheck any you want to exclude)
+4. Place your cursor where you want the TOA inserted
+5. Click **Generate TOA at Cursor**
+
+> **Note:** In Word Online, the TOA is inserted as formatted text with dot leaders and page numbers from the scan. For native TOA fields with live page numbers, use Word Desktop.
+
+## 💻 Installation — Word Desktop
+
+For full native-field support (TA marking + live TOA page numbers):
+
+### Option A: Use the GitHub Pages manifest (no local server)
+
+Same steps as above, but sideload in Word Desktop instead:
+
+- **Windows**: File → Options → Trust Center → Trust Center Settings → Trusted Add-in Catalogs, or use the Insert → Add-ins → Upload method
+- **Mac**: Follow [Microsoft's sideloading guide for Mac](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac)
+
+### Option B: Run locally (for development)
+
+1. Clone and install:
    ```bash
    git clone https://github.com/nrkovacs/table-of-authorities.git
    cd table-of-authorities
-   ```
-
-2. Install dependencies:
-   ```bash
    npm install
    ```
 
-3. Build the add-in:
-   ```bash
-   npm run build
-   ```
-
-4. Start the dev server:
+2. Start the dev server (serves on `https://localhost:3000`):
    ```bash
    npm run dev
    ```
 
-5. Sideload in Word:
-   - **Windows**: Follow [these instructions](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins)
-   - **Mac**: Follow [these instructions](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac)
-   - **Word Online**: Use the manifest.xml file
+3. Sideload `manifest.xml` (the localhost version) in Word using the methods above.
+
+### Which manifest to use?
+
+| Manifest | URLs point to | Use when |
+|---|---|---|
+| `manifest-ghpages.xml` | `https://nrkovacs.github.io/table-of-authorities/` | Normal use — no local server needed |
+| `manifest.xml` | `https://localhost:3000` | Local development with `npm run dev` |
 
 ## 📖 Usage
-
-### Quick Start
-
-1. **Open your legal brief** in Microsoft Word
-
-2. **Click the "Table of Authorities" button** in the Home ribbon
-
-3. **Click "Scan Document"** to detect all citations
-
-4. **Review the detected citations**:
-   - Uncheck any citations you want to exclude
-   - Citations are automatically grouped by category
-
-5. **Click "Generate TOA"** to insert the Table of Authorities at your cursor position
 
 ### Example Input
 
 Your brief might contain citations like:
 
 ```
-As this Court held in Brown v. Board of Education, 347 U.S. 483 (1954), 
-"separate educational facilities are inherently unequal." Pursuant to 
-42 U.S.C. § 1983, Plaintiff brought suit alleging violations under 
-U.S. Const. amend. XIV, § 1. Under Fed. R. Civ. P. 12(b)(6), Defendants 
+As this Court held in Brown v. Board of Education, 347 U.S. 483 (1954),
+"separate educational facilities are inherently unequal." Pursuant to
+42 U.S.C. § 1983, Plaintiff brought suit alleging violations under
+U.S. Const. amend. XIV, § 1. Under Fed. R. Civ. P. 12(b)(6), Defendants
 moved to dismiss.
 ```
 
@@ -105,58 +123,45 @@ RULES
 Fed. R. Civ. P. 12(b)(6) .................................... 11
 ```
 
+### Word Online vs. Word Desktop
+
+| Feature | Word Online | Word Desktop |
+|---|:---:|:---:|
+| Scan & detect citations | ✅ | ✅ |
+| Review & exclude citations | ✅ | ✅ |
+| Generate formatted TOA | ✅ (text with dot leaders) | ✅ (native TOA fields) |
+| Mark citations with TA fields | ❌ | ✅ |
+| Id. resolver | ❌ | ✅ |
+| Live page numbers (Update Field) | ❌ | ✅ |
+
 ## 🎯 Supported Citation Types
 
-The add-in detects citations in the following categories:
+### Cases
+- `Brown v. Board of Education, 347 U.S. 483 (1954)`
+- `In re Marriage of Smith, 123 Cal.App.4th 456 (2005)`
+- `Ex parte Johnson, 456 U.S. 789 (1990)`
+- Short forms: `Brown, 347 U.S. at 485` · `Id. at 100` · `Brown, supra, at 495`
 
-### 1. Cases
-- **Standard**: `Brown v. Board of Education, 347 U.S. 483 (1954)`
-- **In re**: `In re Marriage of Smith, 123 Cal.App.4th 456 (2005)`
-- **Ex parte**: `Ex parte Johnson, 456 U.S. 789 (1990)`
-- **Short form**: `Brown, 347 U.S. at 485`
-- **Id.**: `Id. at 100`
+### Statutes
+- `42 U.S.C. § 1983` · `28 U.S.C. § 1331(a)` · `42 U.S.C. §§ 1983–1988`
+- State: `Cal. Civ. Code § 1542` · `N.Y. Gen. Bus. Law § 349` · `Tex. Fam. Code Ann. § 6.001` · `Fla. Stat. § 768.28` · `735 ILCS 5/2-1401`
 
-### 2. Statutes
-- **Federal**: `42 U.S.C. § 1983`
-- **California**: `Cal. Civ. Code § 1542`
-- **New York**: `N.Y. Gen. Bus. Law § 349`
-- **Texas**: `Tex. Fam. Code Ann. § 6.001`
-- **Florida**: `Fla. Stat. § 768.28`
-- **Illinois**: `735 ILCS 5/2-1401`
+### Constitutional Provisions
+- `U.S. Const. art. I, § 8` · `U.S. Const. amend. XIV, § 1`
+- State: `Cal. Const. art. I, § 7`
 
-### 3. Constitutional Provisions
-- **U.S. Constitution - Article**: `U.S. Const. art. I, § 8`
-- **U.S. Constitution - Amendment**: `U.S. Const. amend. XIV, § 1`
-- **State Constitutions**: `Cal. Const. art. I, § 7`
+### Rules
+- `Fed. R. Civ. P. 12(b)(6)` · `Fed. R. Evid. 702` · `Fed. R. App. P. 4(a)(1)` · `Fed. R. Crim. P. 11`
+- State: `Cal. Rules of Court, rule 8.204`
 
-### 4. Rules
-- **Federal Rules of Civil Procedure**: `Fed. R. Civ. P. 12(b)(6)`
-- **Federal Rules of Evidence**: `Fed. R. Evid. 702`
-- **Federal Rules of Appellate Procedure**: `Fed. R. App. P. 4`
-- **California Rules of Court**: `Cal. Rules of Court, rule 8.204`
+### Regulations
+- `28 C.F.R. § 35.130` · `85 Fed. Reg. 12345 (Mar. 1, 2020)`
 
-### 5. Regulations
-- **Code of Federal Regulations**: `28 C.F.R. § 35.130`
-- **Federal Register**: `85 Fed. Reg. 12345 (Mar. 1, 2020)`
-
-### 6. Treatises & Secondary Sources
-- **Treatises**: `5 Wright & Miller, Federal Practice and Procedure § 1357 (3d ed. 2004)`
-- **Law Reviews**: `Jane Doe, Legal Theory, 100 Harv. L. Rev. 123 (2020)`
-- **Restatements**: `Restatement (Second) of Torts § 402A`
-
-### 7. Other Authorities
-Any citations that don't fit the above categories
-
-## ⚙️ Settings
-
-### Passim Threshold
-Set how many pages a citation must appear on before using "passim" notation (default: 6 pages)
-
-### Dot Leaders
-Enable/disable dot leaders between citations and page numbers (default: enabled)
-
-### Include Footnotes
-Choose whether to scan citations in footnotes (default: enabled)
+### Treatises & Secondary Sources
+- `5 Wright & Miller, Federal Practice and Procedure § 1357 (3d ed. 2004)`
+- `Laurence H. Tribe, American Constitutional Law § 16-14 (3d ed. 2000)`
+- `Restatement (Second) of Torts § 402A`
+- Law reviews: `Jane Doe, Legal Theory, 100 Harv. L. Rev. 123 (2020)`
 
 ## 🛠️ Development
 
@@ -164,143 +169,136 @@ Choose whether to scan citations in footnotes (default: enabled)
 
 ```
 table-of-authorities/
-├── docs/
-│   └── PRD.md                    # Product Requirements Document
 ├── src/
 │   ├── taskpane/
 │   │   ├── taskpane.html         # Task pane UI
 │   │   ├── taskpane.ts           # Main task pane logic
 │   │   └── taskpane.css          # Styling
 │   ├── citation-parser/
-│   │   ├── index.ts              # Main parser orchestrator
-│   │   ├── patterns.ts           # Regex patterns for citation detection
-│   │   ├── types.ts              # TypeScript interfaces
+│   │   ├── index.ts              # Parser orchestrator
+│   │   ├── patterns.ts           # 50+ regex patterns
+│   │   ├── normalizer.ts         # Deduplication & normalization
+│   │   ├── pincite-stripper.ts   # Pin cite removal & TA field codes
 │   │   ├── categories.ts         # Category definitions
-│   │   └── normalizer.ts         # Citation normalization
+│   │   └── types.ts              # TypeScript interfaces
 │   └── toa-generator/
 │       ├── index.ts              # TOA generation logic
-│       └── formatter.ts          # Formatting with dot leaders, passim
+│       └── formatter.ts          # Formatting (dot leaders, passim, OOXML)
 ├── test/
-│   ├── citation-parser.test.ts   # Parser tests (30+ test cases)
-│   ├── toa-generator.test.ts     # Generator tests
+│   ├── citation-parser/          # 11 focused test files
+│   │   ├── cases.test.ts
+│   │   ├── statutes.test.ts
+│   │   ├── constitutional.test.ts
+│   │   ├── rules.test.ts
+│   │   ├── regulations.test.ts
+│   │   ├── treatises.test.ts
+│   │   ├── normalizer.test.ts
+│   │   ├── deduplication.test.ts
+│   │   ├── reporters.test.ts
+│   │   ├── edge-cases.test.ts
+│   │   └── short-form.test.ts
+│   ├── pincite-stripper.test.ts
+│   ├── toa-generator.test.ts
+│   ├── user_repro.test.ts
 │   └── fixtures/
-│       └── sample-brief.txt      # Sample legal brief for testing
-├── manifest.xml                  # Office Add-in manifest
-├── package.json
-├── tsconfig.json
+│       └── sample-brief.txt
+├── demo/
+│   └── demo.html                 # Standalone demo (no Word required)
+├── manifest.xml                  # Office manifest (localhost)
+├── manifest-ghpages.xml          # Office manifest (GitHub Pages)
+├── vitest.config.ts
 ├── webpack.config.js
-└── jest.config.js
+└── package.json
 ```
 
 ### Build Commands
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server (with hot reload)
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-
-# Run tests with coverage
-npm test:coverage
-
-# Watch mode for tests
-npm test:watch
-
-# Lint code
-npm run lint
+npm install          # Install dependencies
+npm run dev          # Dev server with hot reload (https://localhost:3000)
+npm run build        # Production build
+npm test             # Run all 148 tests
+npm run test:watch   # Watch mode
+npm run test:coverage # Coverage report
 ```
 
 ### Technology Stack
 
-- **Office.js** - Microsoft Office Add-in API
-- **TypeScript** - Type-safe JavaScript
-- **React** - UI framework (via vanilla TS for simplicity)
-- **Webpack** - Module bundler
-- **Jest** - Testing framework
+- **Office.js** — Microsoft Office Add-in API
+- **TypeScript** — Type-safe throughout
+- **Webpack** — Module bundler
+- **Vitest** — Test framework (148 tests)
 
 ## 🧪 Testing
 
-The project includes comprehensive tests:
+148 tests across 14 test files covering:
 
-- **30+ test cases** for citation pattern detection
-- **15+ test cases** for TOA formatting
-- **Integration tests** with sample brief fixture
-- **Edge case tests** for unusual citation formats
+- **Citation detection** — Cases, statutes, constitutional provisions, rules, regulations, treatises
+- **Normalization** — Text normalization, identifier extraction, sorting, grouping
+- **Deduplication** — Multi-page merge, pincite variation handling, short-form separation
+- **Pin cite stripping** — TA/TOA field code generation
+- **TOA formatting** — Dot leaders, passim, category ordering, OOXML output
+- **Edge cases** — Empty text, custom patterns, signal words, long case names
+- **Integration** — Full sample brief parsing
 
-Run tests:
 ```bash
-npm test
-```
+$ npm test
 
-View coverage:
-```bash
-npm run test:coverage
+ ✓ test/citation-parser/cases.test.ts (15 tests)
+ ✓ test/citation-parser/statutes.test.ts (10 tests)
+ ✓ test/citation-parser/normalizer.test.ts (28 tests)
+ ✓ test/toa-generator.test.ts (24 tests)
+ ✓ test/citation-parser/deduplication.test.ts (8 tests)
+ ✓ test/pincite-stripper.test.ts (16 tests)
+ ... and 8 more test files
+
+ Test Files  14 passed (14)
+      Tests  148 passed (148)
 ```
 
 ## 📚 Documentation
 
-- **[Product Requirements Document](docs/PRD.md)** - Detailed feature specifications
-- **[Citation Patterns](src/citation-parser/patterns.ts)** - Regex patterns for all citation types
-- **[Type Definitions](src/citation-parser/types.ts)** - TypeScript interfaces
+- **[Product Requirements Document](docs/PRD.md)** — Detailed feature specifications
+- **[Live Demo](https://nrkovacs.github.io/table-of-authorities/demo/demo.html)** — Try citation parsing without Word
+- **[Citation Patterns](src/citation-parser/patterns.ts)** — All regex patterns
+- **[Type Definitions](src/citation-parser/types.ts)** — TypeScript interfaces
 
 ## 🤝 Contributing
-
-Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Write tests for your changes
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
+4. Run `npm test` to ensure all 148 tests pass
+5. Commit and push
 6. Open a Pull Request
 
 ### Adding New Citation Patterns
 
-To add support for a new citation type:
-
 1. Add the regex pattern to `src/citation-parser/patterns.ts`
-2. Add test cases to `test/citation-parser.test.ts`
-3. Update the README with examples
+2. Add test cases to the appropriate file in `test/citation-parser/`
+3. Run `npm test` to verify
+4. Update this README with examples
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🐛 Bug Reports & Feature Requests
-
-Found a bug or have a feature request? [Open an issue](https://github.com/nrkovacs/table-of-authorities/issues) on GitHub.
-
-## 🙏 Acknowledgments
-
-- Citation patterns based on The Bluebook (21st ed.)
-- Inspired by the tedious manual process of creating TOAs
-- Built for lawyers, by developers who care
+MIT — see [LICENSE](LICENSE).
 
 ## 📊 Project Status
 
-**Current Version:** 1.0.0 (MVP)
+**Current Version:** 1.0.0
 
 **Roadmap:**
-- [ ] Bluebook validation (check citation format)
+- [ ] Bluebook format validation
 - [ ] AI-powered citation detection for unusual formats
 - [ ] Multi-document support
 - [ ] Citation library (save frequently used citations)
-- [ ] Shepardizing integration (check if cases are still good law)
+- [ ] Shepardizing integration
 - [ ] Court-specific formatting templates
 
-## ⚖️ Legal Disclaimer
+## ⚖️ Disclaimer
 
-This tool assists with formatting but does not provide legal advice. Users are responsible for verifying all citations are accurate and properly formatted according to applicable court rules and citation manuals.
+This tool assists with formatting but does not provide legal advice. Users are responsible for verifying all citations are accurate and properly formatted.
 
 ---
 
-**Made with ⚖️ by [OpenClaw](https://github.com/nrkovacs)**
-
-**Star this repo** if you find it helpful!
+**[⭐ Star this repo](https://github.com/nrkovacs/table-of-authorities)** if you find it helpful!
