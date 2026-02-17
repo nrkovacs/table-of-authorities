@@ -15,22 +15,51 @@
         <!-- Header -->
         <header class="header">
             <h1 class="title">Table of Authorities</h1>
-            <p class="subtitle">Automatically generate legal citation tables</p>
+            <p class="subtitle">Smart citation marking with native Word fields</p>
         </header>
 
         <!-- Main Content -->
         <main class="content">
-            <!-- Action Buttons -->
-            <section class="actions">
-                <button id="scanButton" class="button button-primary">
-                    <span class="button-icon">🔍</span>
-                    Scan Document
+
+            <!-- Step 1: Scan -->
+            <section class="section">
+                <h3 class="section-title">1. Detect Citations</h3>
+                <button id="scanButton" class="button button-primary full-width">
+                    🔍 Scan Document
                 </button>
-                
-                <button id="generateButton" class="button button-success" disabled>
-                    <span class="button-icon">📄</span>
-                    Generate TOA
+            </section>
+
+            <!-- Step 2: Mark Citations -->
+            <section class="section">
+                <h3 class="section-title">2. Mark Citations ({ TA } Fields)</h3>
+
+                <button id="markAllButton" class="button button-success full-width" disabled>
+                    ⚡ Mark All Citations
                 </button>
+
+                <div class="button-group">
+                    <button id="markSelectionButton" class="button button-secondary">
+                        ✏️ Mark Selection
+                    </button>
+                    <button id="markIdButton" class="button button-secondary" disabled>
+                        📌 Mark as Id.
+                    </button>
+                </div>
+
+                <div id="lastMarkedLabel" class="label-muted hidden"></div>
+                <div id="markedCount" class="label-badge hidden"></div>
+            </section>
+
+            <!-- Step 3: Generate TOA -->
+            <section class="section">
+                <h3 class="section-title">3. Generate TOA ({ TOA } Fields)</h3>
+                <button id="generateButton" class="button button-accent full-width" disabled>
+                    📄 Generate Table of Authorities
+                </button>
+                <p class="help-text">
+                    Runs hygiene guard: hides TA fields, forces repagination,
+                    then inserts { TOA } fields with passim support.
+                </p>
             </section>
 
             <!-- Status Display -->
@@ -56,7 +85,10 @@
             <!-- Citations List -->
             <div id="citationsList" class="citations-list hidden">
                 <h3>Review Citations</h3>
-                <p class="help-text">Uncheck citations you want to exclude from the TOA</p>
+                <p class="help-text">
+                    Long cite (TA \l) and short cite (TA \s) shown below.
+                    Uncheck to exclude from marking.
+                </p>
                 <div id="citationsContent" class="citations-content"></div>
             </div>
 
@@ -69,6 +101,11 @@
                         Include citations from footnotes
                     </label>
                     
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="usePassim" checked />
+                        Use passim (\p switch) for 6+ page citations
+                    </label>
+
                     <label class="setting-label">
                         Passim threshold (pages):
                         <input type="number" id="passimThreshold" value="6" min="4" max="20" />
@@ -76,7 +113,7 @@
                     
                     <label class="checkbox-label">
                         <input type="checkbox" id="useDotLeaders" checked />
-                        Use dot leaders
+                        Use dot leaders (fallback mode)
                     </label>
                 </div>
             </details>
