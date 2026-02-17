@@ -4,71 +4,31 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Table of Authorities Generator</title>
-    
-    <!-- Office.js -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <title>AutoTOA Generator</title>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 </head>
-
-<body class="ms-Fabric">
+<body>
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1 class="title">Table of Authorities</h1>
-            <p class="subtitle">Smart citation marking with native Word fields</p>
+            <h2>⚖️ AutoTOA Generator</h2>
+            <p class="desc">Smart Table of Authorities with native Word field codes.</p>
         </header>
 
-        <!-- Main Content -->
         <main class="content">
-
             <!-- Step 1: Scan -->
-            <section class="section">
-                <h3 class="section-title">1. Detect Citations</h3>
-                <button id="scanButton" class="button button-primary full-width">
-                    🔍 Scan Document
+            <section class="step-section">
+                <button id="scanButton" class="btn btn-primary">
+                    🔍 1. Scan Document
                 </button>
             </section>
 
-            <!-- Step 2: Mark Citations -->
-            <section class="section">
-                <h3 class="section-title">2. Mark Citations ({ TA } Fields)</h3>
-
-                <button id="markAllButton" class="button button-success full-width" disabled>
-                    ⚡ Mark All Citations
-                </button>
-
-                <div class="button-group">
-                    <button id="markSelectionButton" class="button button-secondary">
-                        ✏️ Mark Selection
-                    </button>
-                    <button id="markIdButton" class="button button-secondary" disabled>
-                        📌 Mark as Id.
-                    </button>
-                </div>
-
-                <div id="lastMarkedLabel" class="label-muted hidden"></div>
-                <div id="markedCount" class="label-badge hidden"></div>
-            </section>
-
-            <!-- Step 3: Generate TOA -->
-            <section class="section">
-                <h3 class="section-title">3. Generate TOA ({ TOA } Fields)</h3>
-                <button id="generateButton" class="button button-accent full-width" disabled>
-                    📄 Generate Table of Authorities
-                </button>
-                <p class="help-text">
-                    Runs hygiene guard: hides TA fields, forces repagination,
-                    then inserts { TOA } fields with passim support.
-                </p>
-            </section>
-
-            <!-- Status Display -->
+            <!-- Status -->
             <div id="status" class="status hidden">
-                <div class="status-icon">ℹ️</div>
-                <div id="statusMessage" class="status-message"></div>
+                <span id="statusMessage"></span>
             </div>
 
-            <!-- Progress Bar -->
+            <!-- Progress -->
             <div id="progressContainer" class="progress-container hidden">
                 <div class="progress-bar">
                     <div id="progressBar" class="progress-fill"></div>
@@ -79,18 +39,56 @@
             <!-- Statistics -->
             <div id="stats" class="stats hidden">
                 <h3>Citations Found</h3>
-                <div id="statsContent" class="stats-content"></div>
+                <div id="statsContent"></div>
             </div>
 
-            <!-- Citations List -->
+            <!-- Citation Review List -->
             <div id="citationsList" class="citations-list hidden">
-                <h3>Review Citations</h3>
+                <h3>Review &amp; Edit Citations</h3>
                 <p class="help-text">
-                    Long cite (TA \l) and short cite (TA \s) shown below.
-                    Uncheck to exclude from marking.
+                    Uncheck to exclude. Click ✏️ to edit the Long/Short citation text before marking.
                 </p>
-                <div id="citationsContent" class="citations-content"></div>
+                <div id="citationsContent"></div>
             </div>
+
+            <!-- Step 2: Mark -->
+            <section id="markSection" class="step-section hidden">
+                <button id="markAllButton" class="btn btn-mark">
+                    📌 2. Mark All Citations (TA Fields)
+                </button>
+                <p class="help-text">
+                    Injects native <code>{ TA }</code> fields next to each citation.
+                    Pin cites are auto-stripped for clean grouping.
+                </p>
+            </section>
+
+            <!-- Id. Resolver -->
+            <section id="idSection" class="step-section hidden">
+                <div class="id-resolver">
+                    <div class="id-status">
+                        <strong>Last Marked:</strong>
+                        <span id="lastMarkedCite" class="last-marked">—</span>
+                    </div>
+                    <button id="markIdButton" class="btn btn-id">
+                        📎 Mark Selection as "Id."
+                    </button>
+                    <p class="help-text">
+                        Select an <em>Id.</em> reference in the document, then click to
+                        inject a <code>{ TA \s }</code> field linking it to the last authority.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Step 3: Generate TOA -->
+            <section id="generateSection" class="step-section hidden">
+                <button id="generateButton" class="btn btn-success">
+                    📄 3. Generate TOA at Cursor
+                </button>
+                <p class="help-text">
+                    Runs Document Hygiene (hides field codes, repaginates),
+                    then inserts native <code>{ TOA }</code> fields with passim support.
+                </p>
+            </section>
 
             <!-- Settings -->
             <details class="settings">
@@ -100,36 +98,26 @@
                         <input type="checkbox" id="includeFootnotes" checked />
                         Include citations from footnotes
                     </label>
-                    
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="usePassim" checked />
-                        Use passim (\p switch) for 6+ page citations
-                    </label>
-
                     <label class="setting-label">
                         Passim threshold (pages):
-                        <input type="number" id="passimThreshold" value="6" min="4" max="20" />
+                        <input type="number" id="passimThreshold" value="6" min="3" max="20" />
                     </label>
-                    
                     <label class="checkbox-label">
-                        <input type="checkbox" id="useDotLeaders" checked />
-                        Use dot leaders (fallback mode)
+                        <input type="checkbox" id="autoHygiene" checked />
+                        Auto-run Document Hygiene before TOA generation
                     </label>
                 </div>
             </details>
         </main>
 
-        <!-- Footer -->
         <footer class="footer">
             <p class="footer-text">
-                <a href="https://github.com/nrkovacs/table-of-authorities" target="_blank">
-                    Help & Documentation
-                </a>
+                After generation, <strong>right-click the TOA → Update Field</strong>
+                to render live page numbers.
             </p>
         </footer>
     </div>
 
-    <!-- Load taskpane script -->
     <script src="taskpane.js"></script>
 </body>
 </html>
