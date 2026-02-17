@@ -12,8 +12,13 @@ import { CitationCategory, CitationPattern } from './types';
 const CASE_PATTERNS: CitationPattern[] = [
   {
     // Standard case citation: Brown v. Board of Education, 347 U.S. 483 (1954)
-    // Uses stricter party name matching to avoid capturing preceding text (and newlines)
-    pattern: /\b((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*))[ \t]+v\.[ \t]+((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*)),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    // Party name MUST start at a non-word character boundary (start of string, whitespace,
+    // punctuation, or newline — NOT preceded by a letter). The plaintiff token must begin
+    // with an uppercase letter. Lowercase connectors (of, the, etc.) are only allowed
+    // BETWEEN uppercase tokens, not at the start.
+    // Using (?:^|(?<=[\s,;(\n])) as anchor — but JS doesn't support variable-length lookbehind,
+    // so we use a simple \b and rely on the first character being uppercase.
+    pattern: /(?:^|(?<=[ \t,;(\n]))((?:[A-Z][\w.'&,-]{0,30})(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.'&,-]{0,30}|\d+)){0,6})[ \t]+v\.[ \t]+((?:[A-Z][\w.'&,-]{0,30})(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.'&,-]{0,30}|\d+)){0,6}),\s+(\d+)\s+([A-Z][A-Za-z0-9.]+)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9. ]{0,30})[ \t]+)?(\d{4})\)/gim,
     category: CitationCategory.Cases,
     description: 'Standard case citation',
   },
@@ -38,7 +43,7 @@ const CASE_PATTERNS: CitationPattern[] = [
   },
   {
     // Case with multi-word reporter: Smith v. Jones, 65 F. Supp. 2d 431 (W.D. Tex. 1999)
-    pattern: /\b((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*))[ \t]+v\.[ \t]+((?:[A-Z][\w.,'&-]*(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.,'&-]+|\d+))*)),\s+(\d+)\s+(F\.\s*Supp\.(?:\s*\d+d)?)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9.\s]+)\s+)?(\d{4})\)/gi,
+    pattern: /(?:^|(?<=[ \t,;(\n]))((?:[A-Z][\w.'&,-]{0,30})(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.'&,-]{0,30}|\d+)){0,6})[ \t]+v\.[ \t]+((?:[A-Z][\w.'&,-]{0,30})(?:[ \t]+(?:of|the|for|and|&|on|to|d|l|[A-Z][\w.'&,-]{0,30}|\d+)){0,6}),\s+(\d+)\s+(F\.\s*Supp\.(?:\s*\d+d)?)\s+(\d+)(?:,\s+(\d+))?\s+\((?:([A-Za-z0-9][A-Za-z0-9. ]{0,30})[ \t]+)?(\d{4})\)/gim,
     category: CitationCategory.Cases,
     description: 'Case with F. Supp. reporter',
   },
@@ -213,26 +218,28 @@ const TREATISES_PATTERNS: CitationPattern[] = [
   },
   {
     // Law review article: Jane Doe, Legal Theory, 100 Harv. L. Rev. 123 (2020)
-    pattern: /\b([A-Z][A-Za-z\s.]+),\s+([A-Za-z\s:]+),\s+(\d+)\s+([A-Z][A-Za-z.\s]+)\s+L\.\s+Rev\.\s+(\d+)\s+\((\d{4})\)/gi,
+    // Bounded quantifiers to prevent catastrophic backtracking
+    pattern: /\b([A-Z][A-Za-z .]{1,40}),\s+([A-Za-z :]{1,60}),\s+(\d+)\s+([A-Z][A-Za-z. ]{1,30})\s+L\.\s+Rev\.\s+(\d+)\s+\((\d{4})\)/gi,
     category: CitationCategory.Treatises,
     description: 'Law review article',
   },
   {
     // Restatement: Restatement (Second) of Torts § 402A
-    pattern: /\bRestatement\s+\(([A-Za-z]+)\)\s+of\s+([A-Za-z\s]+)\s+§\s*([\d\w]+)/gi,
+    // Bounded quantifier on subject word list to prevent backtracking
+    pattern: /\bRestatement\s+\(([A-Za-z]+)\)\s+of\s+([A-Za-z ]{1,40})\s+§\s*([\d\w]+)/gi,
     category: CitationCategory.Treatises,
     description: 'Restatement',
   },
   {
     // Witkin (California): 1 Witkin, Summary of Cal. Law § 123 (10th ed. 2005)
-    pattern: /\b(\d+)\s+Witkin,\s+([A-Za-z\s.]+)\s+§\s*([\d]+)\s+\((\d+(?:st|nd|rd|th)\s+ed\.\s+\d{4})\)/gi,
+    pattern: /\b(\d+)\s+Witkin,\s+([A-Za-z .]{1,50})\s+§\s*([\d]+)\s+\((\d+(?:st|nd|rd|th)\s+ed\.\s+\d{4})\)/gi,
     category: CitationCategory.Treatises,
     description: 'Witkin treatise',
   },
   {
     // Treatise without volume: Laurence H. Tribe, American Constitutional Law § 16-14 (3d ed. 2000)
-    // Matches: Author, Title § Section (Year/Ed)
-    pattern: /\b([A-Z][\w.,'&-]*(?:\s+[A-Z][\w.,'& -]*)*),\s+([A-Z][A-Za-z\s&.,'-]+)\s+§\s*([\d.-]+)\s+\((?:(?:\d+[a-z]*\s+ed\.\s+)?\d{4})\)/gi,
+    // Author must start uppercase, title bounded to prevent catastrophic backtracking
+    pattern: /\b([A-Z][A-Za-z.'& -]{1,40}),\s+([A-Z][A-Za-z'&.,\- ]{1,60})\s+§\s*([\d.-]+)\s+\((?:(?:\d+[a-z]*\s+ed\.\s+)?\d{4})\)/gi,
     category: CitationCategory.Treatises,
     description: 'Treatise without volume',
   },

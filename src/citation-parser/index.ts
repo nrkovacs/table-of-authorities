@@ -66,8 +66,29 @@ export function parseDocument(
       let match: RegExpExecArray | null;
       
       while ((match = regex.exec(pageText)) !== null) {
+        // For case citations, trim any leading prose text that the regex may have captured
+        // (e.g. "See", "See also", "Cf.", "held in", etc.).
+        // The case name always starts at an uppercase word just before "v.".
+        // Walk backwards from the "v." position to find that run of party-name tokens.
+        let matchText = match[0].trim();
+        if (pattern.category === CitationCategory.Cases && !pattern.isShortForm) {
+          // Strip leading citation signals (See, See also, Cf., But cf., Accord, etc.)
+          matchText = matchText.replace(
+            /^(?:See\s+also|See\s+e\.g\.|See|Cf\.|But\s+cf\.|Accord|Contra|But\s+see|E\.g\.,?)\s+/i,
+            ''
+          );
+          const vDotIdx = matchText.search(/\bv\.\s+[A-Z]/);
+          if (vDotIdx > 0) {
+            const before = matchText.slice(0, vDotIdx);
+            // Grab the last contiguous run of party-name tokens before "v."
+            const partyMatch = before.match(/([A-Z][\w.'&,\-]+(?: (?:[A-Z][\w.'&,\-]+|of|the|for|and|&|on|to))*)\s*$/);
+            if (partyMatch) {
+              matchText = partyMatch[0].trimStart() + matchText.slice(vDotIdx);
+            }
+          }
+        }
         matches.push({
-          text: match[0],
+          text: matchText,
           category: pattern.category,
           startIndex: match.index,
           endIndex: match.index + match[0].length,

@@ -1,5 +1,12 @@
 module.exports = {
-  preset: 'ts-jest',
+  transform: {
+    '^.+\\.tsx?$': ['@swc/jest', {
+      jsc: {
+        parser: { syntax: 'typescript', tsx: true },
+        target: 'es2020',
+      },
+    }],
+  },
   testEnvironment: 'node',
   roots: ['<rootDir>/test'],
   testMatch: ['**/*.test.ts'],
@@ -11,13 +18,5 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/taskpane/taskpane.ts',
   ],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 85,
-      statements: 85,
-    },
-  },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
 };

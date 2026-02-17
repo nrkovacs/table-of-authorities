@@ -89,7 +89,11 @@ The Restatement (Second) of Torts § 402A also provides relevant guidance on lia
 
     test('should parse Wright & Miller as Treatise, not Statute', () => {
         const result = parseText(sampleText);
-        const wm = result.citations.find(c => c.text.includes('Wright & Miller'));
+        // The captured text may be "Charles Alan Wright & Arthur R. Miller, Federal Practice..."
+        // depending on how the author name is parsed; we match on the title portion.
+        const wm = result.citations.find(c =>
+            c.text.includes('Wright') && c.text.includes('Federal Practice and Procedure')
+        );
 
         expect(wm).toBeDefined();
         if (wm) {

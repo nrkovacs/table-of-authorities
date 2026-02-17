@@ -1,17 +1,15 @@
 /**
- * Jest test setup
+ * Test setup – compatible with Vitest globals mode.
+ * Mocks Office.js APIs that are not available in Node.
  */
+import { vi } from 'vitest';
 
-// Mock Office.js if needed
-global.Office = {
-  onReady: jest.fn(),
+(global as any).Office = {
+  onReady: vi.fn(),
   context: {},
-} as any;
+};
 
-global.Word = {
-  run: jest.fn(),
-  InsertLocation: {
-    before: 'before',
-    after: 'after',
-  },
-} as any;
+(global as any).Word = {
+  run: vi.fn(),
+  InsertLocation: { before: 'before', after: 'after' },
+};
